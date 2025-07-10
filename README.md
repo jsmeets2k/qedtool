@@ -5,10 +5,9 @@
 `qedtool` is a Python-based object-oriented tool that allows users to calculate quantum optics quantities from relativistic perturbative quantum electrodynamics (QED) at tree-level. With `qedtool`, users can:
 
 * Calculate polarized Feynman amplitudes
-* Create pure and mixed quantum states
-* Construct the post-scattering quantum state for a specified initial state
-* Calculate two-particle entanglement
-* Determine spin and polarization correlations for n-particle states
+* Compute scattering probabilities for pure and mixed quantum states
+* Calculate two-particle entanglement for pure and mixed states
+* Determine spin and polarization correlations for n-particle states (n-particle Stokes parameters)
 * Find the degree of single- and two-particle polarization
 
 If you find package useful in your research, please cite our manual from the link below:
