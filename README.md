@@ -1,33 +1,32 @@
-# QEDtool
+## QEDtool: A Python package for numerical quantum information in quantum electrodynamics
 
-## A Python package for numerical quantum information in quantum electrodynamics
+### Description
 
-`qedtool` is a Python-based object-oriented tool that allows users to calculate quantum information quantities from relativistic perturbative quantum electrodynamics (QED) at tree-level. With `qedtool`, users can
+`qedtool` is a Python-based object-oriented tool that allows users to calculate quantum information quantities from relativistic perturbative quantum electrodynamics (QED) at tree-level. With `qedtool`, users can calculate
 
-* calculate tree-level QED Feynman amplitudes,
-* compute scattering probabilities for pure and mixed polarization states,
-* calculate the full quantum state of the emitted state (in 2-to-2 particle scattering).
+* polarized tree-level QED Feynman amplitudes,
+* scattering probabilities for pure and mixed polarization states,
+* the full emitted quantum state (with built-in functions for 2-to-2 particle scattering).
 
 From the emitted quantum state, users can compute
 * the degree of two-particle entanglement of emitted states,
 * $n$-particle Stokes parameters,
 * single- and two-particle degree of polarization.
 
-The documentation of `qedtool` is contained within our paper: [![DOI](http://img.shields.io/badge/arXiv%20preprint%20-info-lightblue.svg)](https://arxiv.org/)
+These quantities can be studied from arbitrary reference frames by means of Lorentz transformations. The documentation of `qedtool` is contained within our paper: 
 
-If you find `qedtool` useful in your research, please cite our paper.
+[![DOI](http://img.shields.io/badge/arXiv%20preprint%20-DOI-lightblue.svg)](https://arxiv.org/)
 
-## How to install `qedtool`?
+The `examples/` directory contains Jupyter notebooks with examples as presented in our paper; from defining vectors and particles, to complete scattering processes. If you find `qedtool` useful in your research, please cite our paper.
 
-You can install `qedtool` on the command line using pip:
+### How to install `qedtool`?
+
+In addition to cloning `qedtool` from this GitHub repository, it can be installed using the following command line:
 ```
   pip install qedtool
 ```
 
-## How to help improve `qedtool`?
+### License
 
-To be continued...
+`qedtool` is licensed under the MIT license.
 
-## Plans for further development
-
-To be continued...
