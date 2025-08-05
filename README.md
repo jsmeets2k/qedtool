@@ -19,7 +19,7 @@ These quantities can be studied from arbitrary reference frames by means of Lore
 
 The `examples/` directory contains Jupyter notebooks with examples as presented in our paper; from defining vectors and particles, to complete scattering processes. If you find `qedtool` useful in your research, please cite our paper.
 
-### How to install `qedtool`?
+### Installation
 
 In addition to cloning `qedtool` from this GitHub repository, it can be installed using the following command line:
 ```
