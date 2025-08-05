@@ -1,13 +1,15 @@
-# qedtool
+# QEDtool
 
-## A Python-based package for quantum electrodynamics and quantum optics calculations
+## A Python package for numerical quantum information in quantum electrodynamics
 
-`qedtool` is a Python-based object-oriented tool that allows users to calculate quantum optics quantities from relativistic perturbative quantum electrodynamics (QED) at tree-level. With `qedtool`, users can:
+Jesse Smeets, Preslav Asenov and Alessio Serafini
+
+`qedtool` is a Python-based object-oriented tool that allows users to calculate quantum information quantities from relativistic perturbative quantum electrodynamics (QED) at tree-level. With `qedtool`, users can:
 
 * Calculate tree-level QED Feynman amplitudes,
 * Compute scattering probabilities for pure and mixed polarization states,
-* Calculate two-particle entanglement for pure and mixed states,
-* Compute polarization correlations for n-particle states (n-particle Stokes parameters),
+* Calculate the degree of two-particle entanglement of emitted states,
+* Compute n-particle Stokes parameters,
 * Calculate the single- and two-particle degree of polarization.
 
 If you find package useful in your research, please cite our manual from the link below:
