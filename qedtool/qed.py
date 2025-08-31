@@ -7,10 +7,6 @@ from .relativity import lorentzian_product, spherical_components, \
                         ThreeVector, FourVector
 
 
-# Convergence factor
-EPSILON = 1e-200
-
-
 # 4x4 identity
 I4 = np.eye(4)
 
@@ -34,20 +30,9 @@ GAMMA = np.array([[[0, 0, 1, 0],
                    [0, 1, 0, 0]]])
 
 
-# Pauli matrices
-PAULI = np.array([[[1, 0], 
-                   [0, 1]],
-                  [[0, 1], 
-                   [1, 0]],
-                  [[0, -1j], 
-                   [1j, 0]],
-                  [[1, 0], 
-                   [0, -1]]])
-
-
 # Fine structure and elementary charge in natural units
 ALPHA = 1 / 137.035999177
-COUPLING = np.sqrt(4 * np.pi * ALPHA)
+CHARGE = np.sqrt(4 * np.pi * ALPHA)
 
 
 # Electron, muon and tau masses in MeV
@@ -81,13 +66,16 @@ class DiracSpinor:
         The handedness of the fermion.  Must be +1 or -1.
     pmu : FourVector
         The 4-momentum of which defines the Dirac spinor.
+    anti : Boolean
+        Whether the momentum space spinor corresponds to a fermion or
+        antifermion.
+    adjoint : Boolean
+        Whether the Dirac adjoint must be taken.
 
     Attributes
     ----------
     bispinor : DiracSpinor
         The Dirac spinor.
-    anti : Boolean
-        Whether the Dirac spinor represents a particle or antiparticle.
     adjoint : Boolean
         Whether the Dirac spinor is adjointed or not.
 
@@ -105,7 +93,6 @@ class DiracSpinor:
             raise TypeError("`pmu` must be of type `FourVector`.")
         
         # Used so that an adjoint cannot be added to a regular bispinor
-        self.anti = anti
         self.adjoint = adjoint
 
         if adjoint == False:
@@ -261,6 +248,27 @@ class DiracSpinor:
 
         return pspin
     
+    def __neg__(self): 
+
+        # Check if `self` is a Dirac spinor
+        if not isinstance(self, DiracSpinor):
+            return NotImplemented
+
+        # Minus `self` bispinor
+        nspin_bispinor = -self.bispinor
+
+        # Create an instance with an incorrect spinor
+        pmu = FourVector(1, 1, 0, 0)
+        if self.adjoint == True:
+            nspin = DiracSpinor(1, pmu, adjoint=True)
+        elif self.adjoint == False:
+            nspin = DiracSpinor(1, pmu, adjoint=False)
+
+        # The Dirac spinor as array
+        nspin.bispinor = nspin_bispinor
+
+        return nspin
+    
     def dirac_adjoint(psi):
 
         # Check if `psi` is of type `DiracSpinor`
@@ -274,7 +282,6 @@ class DiracSpinor:
         elif psi.adjoint == True:
             psi.adjoint = False
         
-
         return psi
 
 
@@ -328,20 +335,14 @@ class RealParticle:
     
     """
 
-    def __init__(self, species, handedness, pmu, direction):
+    def __init__(self, species, pmu, direction):
 
         # Specifies the type of particle
         self.species = species
 
-        # Check handedness
-        if handedness == 1 or handedness == -1:
-            pass
-        else:
-            raise Exception("`handedness` must be +1 or -1.")
-
         # Particle's 4-momentum (FourVector class)
         if isinstance(pmu, FourVector):
-            self.pmu = pmu
+            self.four_momentum = pmu
         else:
             raise Exception("`pmu` must be of type `FourVector`.")
 
@@ -349,7 +350,7 @@ class RealParticle:
         if direction == 'in' or direction == 'out':
             self.direction = direction
         else:
-            raise Exception("`direction` must be `in` or `out`.")
+            raise Exception("`direction` must be `'in'` or `'out'`.")
 
         # Yet to be determined parameters
         self.spin = None
@@ -382,6 +383,12 @@ class RealParticle:
         its Dirac spinor is automatically taken.
         
         """
+
+        # Check handedness
+        if handedness == 1 or handedness == -1:
+            pass
+        else:
+            raise Exception("`handedness` must be +1 or -1.")
         
         # Make an instance
         pcl = RealParticle('electron', handedness, pmu, direction)
@@ -435,6 +442,12 @@ class RealParticle:
         its Dirac spinor is automatically taken.
         
         """
+
+        # Check handedness
+        if handedness == 1 or handedness == -1:
+            pass
+        else:
+            raise Exception("`handedness` must be +1 or -1.")
         
         # Make an instance
         pcl = RealParticle('positron', handedness, pmu, direction)
@@ -443,7 +456,7 @@ class RealParticle:
         t = pmu.sphericals[0]
         v = pmu.sphericals[1]
         if t >= v:
-            pcl.pmu = pmu
+            pcl.four_momentum = pmu
         else:
             raise Exception(
                 "`pmu` must be time-like for massive particles " \
@@ -490,13 +503,19 @@ class RealParticle:
         its 4-polarization is automatically taken.
         
         """
+
+        # Check handedness
+        if handedness == 1 or handedness == -1:
+            pass
+        else:
+            raise Exception("`handedness` must be +1 or -1.")
         
         # Make an instance
         pcl = RealParticle('photon', handedness, pmu, direction)
 
         # Check whether `pmu` is light-like
         if np.round(lorentzian_product(pmu.vector, pmu.vector), 7) == 0.0:
-            pcl.pmu = pmu
+            pcl.four_momentum = pmu
         else:
             raise Exception("`pmu` must be light-like for photons. " \
                             + "A virtuality of at least 1e-7 is required.")
@@ -540,6 +559,12 @@ class RealParticle:
         its Dirac spinor is automatically taken.
         
         """
+
+        # Check handedness
+        if handedness == 1 or handedness == -1:
+            pass
+        else:
+            raise Exception("`handedness` must be +1 or -1.")
         
         # Make an instance
         pcl = RealParticle('muon', handedness, pmu, direction)
@@ -548,7 +573,7 @@ class RealParticle:
         t = pmu.sphericals[0]
         v = pmu.sphericals[1]
         if t >= v:
-            pcl.pmu = pmu
+            pcl.four_momentum = pmu
         else:
             raise Exception(
                 "`pmu` must be time-like for massive particles " \
@@ -595,6 +620,12 @@ class RealParticle:
         its Dirac spinor is automatically taken.
         
         """
+
+        # Check handedness
+        if handedness == 1 or handedness == -1:
+            pass
+        else:
+            raise Exception("`handedness` must be +1 or -1.")
         
         # Make an instance
         pcl = RealParticle('antimuon', handedness, pmu, direction)
@@ -603,7 +634,7 @@ class RealParticle:
         t = pmu.sphericals[0]
         v = pmu.sphericals[1]
         if t >= v:
-            pcl.pmu = pmu
+            pcl.four_momentum = pmu
         else:
             raise Exception(
                 "`pmu` must be time-like for massive particles " \
@@ -641,7 +672,7 @@ class VirtualParticle:
     ----------
     species : str
         The type of particle.
-    pmu : FourVector
+    four_momentum : FourVector
         The on-shell 4-momentum of the particle.
     virtuality : float
         The squared Lorentzian norm of `pmu`.
@@ -667,7 +698,7 @@ class VirtualParticle:
 
         # Particle's 4-momentum (FourVector class)
         if isinstance(pmu, FourVector):
-            self.pmu = pmu
+            self.four_momentum = pmu
         else:
             raise Exception("`pmu` must be of type `FourVector`.")
         
@@ -976,8 +1007,7 @@ def fermion_propagator(pmu, m):
                      [0, 0, m, 0], 
                      [0, 0, 0, m]])
     
-    return 1j * (slashed(pmu) + mass) / (lorentzian_product(pmu, pmu) - m**2 \
-                                         + 1j * EPSILON)
+    return 1j * (slashed(pmu) + mass) / (lorentzian_product(pmu, pmu) - m**2)
 
 
 def photon_propagator(pmu):
@@ -1007,7 +1037,7 @@ def photon_propagator(pmu):
     if len(pmu) != 4:
         raise Exception("pmu must have shape (4,).")
     
-    return (-1j / (lorentzian_product(pmu, pmu) + 1j * EPSILON)) \
+    return (-1j / (lorentzian_product(pmu, pmu))) \
             * np.array([[1, 0, 0, 0], 
                         [0, -1, 0, 0], 
                         [0, 0, -1, 0], 
@@ -1015,272 +1045,85 @@ def photon_propagator(pmu):
 
 
 
-# Helicity and handedness
-
-def handedness(pcl):
-    """
-    Return the handedness of a particle (helicity eigenstate).
-
-    Parameters
-    ----------
-    pcl : RealParticle
-        The real particle of which the handedness is determined.
-
-    Returns
-    -------
-    handedness : int
-        The handedness of `pcl`, which can be +1 or -1.
-    
-    """
-
-    def vector_handedness(momentum):
-
-        if isinstance(momentum, FourVector):
-            px = momentum.cartesians[1]
-            py = momentum.cartesians[2]
-            pz = momentum.cartesians[3]
-            p = momentum.sphericals[1]
-        elif isinstance(momentum, ThreeVector):
-            px = momentum.cartesians[0]
-            py = momentum.cartesians[1]
-            pz = momentum.cartesians[2]
-            p = momentum.sphericals[0]
-        elif isinstance(momentum, np.ndarray):
-            if len(momentum) == 3:
-                px = momentum[0]
-                py = momentum[1]
-                pz = momentum[2]
-            elif len(momentum) == 4:
-                px = momentum[1]
-                py = momentum[2]
-                pz = momentum[3]
-            p = np.sqrt(px**2 + py**2 + pz**2)
-        else:
-            raise TypeError("`momentum` must be an instance of `ThreeVector`, " \
-                            + "`FourVector`, or an ndarray of shape (3,) or (4,).")
-        
-        h = 1j * np.array([[0, 0, 0, 0],
-                        [0, 0, -pz, py],
-                        [pz, 0, 0, -px],
-                        [-py, px, 0, 0]]) / p
-        
-        return h
-
-    def spinor_handedness(momentum):
-
-        if isinstance(momentum, FourVector):
-            px = momentum.cartesians[1]
-            py = momentum.cartesians[2]
-            pz = momentum.cartesians[3]
-            p = momentum.sphericals[1]
-        elif isinstance(momentum, ThreeVector):
-            px = momentum.cartesians[0]
-            py = momentum.cartesians[1]
-            pz = momentum.cartesians[2]
-            p = momentum.sphericals[0]
-        elif isinstance(momentum, np.ndarray):
-            if len(momentum) == 3:
-                px = momentum[0]
-                py = momentum[1]
-                pz = momentum[2]
-            elif len(momentum) == 4:
-                px = momentum[1]
-                py = momentum[2]
-                pz = momentum[3]
-            p = np.sqrt(px**2 + py**2 + pz**2)
-        else:
-            raise TypeError("`momentum` must be an instance of `ThreeVector`, " \
-                            + "`FourVector`, or an ndarray of shape (3,) or (4,).")
-        
-        helicity = np.array([[pz, px - 1j*py, 0, 0],
-                            [px + 1j*py, -pz, 0, 0],
-                            [0, 0, pz, px - 1j*py],
-                            [0, 0, px + 1j*py, -pz]]) / p / 2
-        
-        return helicity
-
-
-    if not isinstance(pcl, RealParticle):
-        raise TypeError("`pcl` must be an instance of `RealParticle`.")
-    
-    if pcl.species == 'electron' or pcl.species == 'positron' or \
-       pcl.species == 'muon' or pcl.species == 'antimuon':
-        
-        # Helicity operator
-        helicity = 2 * spinor_handedness(pcl.pmu)
-        
-        # Applying the helicity operator on the Dirac spinor
-        psi = pcl.polarization.bispinor
-        h_psi = helicity.dot(psi)
-
-        # Make sure that no NaN is returned
-        for i in range(4):
-            if h_psi[i] != 0.0 and psi[i] != 0.0:
-                return int(np.round(np.real(h_psi[i] / psi[i])))
-            
-    elif pcl.species == 'photon':
-
-        # Helicity operator for vector particles
-        helicity = vector_handedness(pcl.pmu)
-        
-        # Applying the helicity operator on the 4-polarization
-        eps = pcl.polarization.vector
-        h_eps = helicity.dot(eps)
-
-        # Make sure that no NaN is returned
-        for i in range(4):
-            if h_eps[i] != 0.0 and eps[i] != 0.0:
-                return int(np.round(np.real(h_eps[i] / eps[i])))
-
-
-def handedness_config(n, fixed=None, fixedval=None):
-    """
-    Return an array that contains all possible handedness combinations.  User
-    may specify fixed helicities.
-
-    Parameters
-    ----------
-    n : int
-        Number of helicities.  Must be positive.
-    fixed : array_like or int, optional
-        1D array that contains the indices of fixed helicities.  By default,
-        no helicities are fixed.  The length of `fixed` must be less than `n`.
-    fixedval : array_like or int, optional
-        1D array that contains the fixed helicities.  It is a 1-to-1 mapping
-        to `fixed`.  If `fixed` is specified, then `fixedval` must also be 
-        specified.  The length of `fixedval` must be equal to the length of 
-        `fixed`.
-
-    Returns
-    -------
-    helicities : ndarray
-        2D array that contains all combinations of helicities.
-
-    """
-    
-    # Errors for n
-    if type(n) != int:
-        raise TypeError("`n` must be of type int.")
-    if n <= 0:
-        raise Exception("`n` must be larger than zero.")
-        
-    # If fixed and fixedval are not None
-    if fixed != None:
-        
-        # Check if fixedval is defined
-        if fixedval == None:
-            raise Exception("If `fixed` is specified " \
-                            + "then `fixedval` also needs to be specified.")
-        
-        # Make sure fixed and fixedval are of equal length
-        if len(fixed) != len(fixedval):
-            raise Exception("`fixed` and `fixedval` should " \
-                            + "be of equal length.")
-
-        # Errors for fixed
-        for i in range(len(fixed)):
-            if type(fixed[i]) != int:
-                raise TypeError("Elements of `fixed` should be of type `int`.")
-            if fixed[i] < 0 or fixed[i] > n - 1:
-                raise Exception("Elements of `fixed` should be in the " \
-                                + "interval [0, n-1].")
-                
-        # Errors for fixedval
-        for i in range(len(fixedval)):
-            if type(fixedval[i]) != int:
-                raise TypeError("Elements of `fixedval` should " \
-                                + "be of type int.")
-            if fixedval[i] != 1 and fixedval[i] != -1:
-                raise Exception("Elements of fixedval should be " \
-                                + "either +1, or -1.")
-        
-    # Generate all possibilities and empty handedness configuration list
-    lst = list(itertools.product([1, -1], repeat=n))
-    h = np.zeros((2**n, n))
-    
-    if fixed == None:
-        
-        return lst
-    
-    elif type(fixed) == int and type(fixedval) == int:
-        
-        # Filling the handedness configuration list
-        for i in range(len(h)):
-            for j in range(len(h[i])):
-                h[i][j] = lst[i][j]
-        
-        # Fixing the selected helicities
-        for i in range(len(h)):
-            h[i][fixed] = fixedval
-        
-        # Removing duplicates
-        helicities = np.unique(h, axis=0)
-        
-        return np.array(helicities)
-    
-    else:
-        
-        # Filling the handedness configuration list
-        for i in range(len(h)):
-            for j in range(len(h[i])):
-                h[i][j] = lst[i][j]
-        
-        # Filling in the fixed values
-        for i in range(len(h)):
-            for j in range(len(fixedval)):
-                h[i][fixed[j]] = fixedval[j]
-        
-        # Removing duplicates
-        helicities = np.unique(h, axis = 0)
-        
-        return helicities.astype(int)
-
-
-
 # Miscellaneous functions
 
 
-def energy_units(n):
+def constant(quantity, units=None):
     """
-    Redefines all global variables, such that all calculations are done in 
-    XeV units, where the placeholder X stands for the unit prefix corresponding
-    to an order of magnitude of n according to the standard convention, 
-    i.e.
+    Returns constants in the desired units.
 
-    eV corresponds to n = 0,
-    keV corresponds to n = 3,
-    MeV corresponds to n = 6,
-    etc. 
-
-    Namely, this function multiplies the global variables `ELECTRON_MASS`, 
-    `MUON_MASS` and `TAU_MASS` by 10^(n-6), where the aforementioned variables 
-    are defined in MeV units by default.
-    
     Parameters
     ----------
-    n : int
-        Order of magnitude.
-    
+    quantity : str
+        The quantity.
+    units : str
+        The units in which to express `quantity`, which range from `'eV'` to
+        `'GeV'`.
+
     Returns
     -------
-    ELECTRON_MASS : float
-        Updated global variable of electron mass in required units.
-    MUON_MASS : float
-        Updated global variable of muon mass in required units.
-    TAU_MASS : float
-        Updated global variable of tau mass in required units.
+    quantity_in_units : float
+        The value of `quantities` expressed in the specified `units`.
     
     """
-    
-    # Check whether `n` is an integer
-    if not isinstance(n, int):
-        raise Exception("`n` must be of type `int`.")
 
-    # Electron, muon and tau masses in XeV
-    globals()['ELECTRON_MASS'] = 0.511 * 10**(6 - n)
-    globals()['MUON_MASS'] = 105.6583755 * 10**(6 - n)
-    globals()['TAU_MASS'] = 1776.86 * 10**(6 - n)
- 
+    if quantity == 'electron mass' or quantity == 'positron mass':
+        if units == 'eV':
+            globals()['ELECTRON_MASS'] = 511000
+            return 511000
+        elif units == 'keV':
+            globals()['ELECTRON_MASS'] = 511000 * 1e-3
+            return 511000 * 1e-3
+        elif units == 'MeV' or units == None:
+            globals()['ELECTRON_MASS'] = 511000 * 1e-6
+            return 511000 * 1e-6
+        elif units == 'GeV':
+            globals()['ELECTRON_MASS'] = 511000 * 1e-9
+            return 511000 * 1e-9
+        else:
+            raise ValueError("Invalid units.")
+               
+    elif quantity == 'muon mass' or quantity == 'antimuon mass':
+        if units == 'eV':
+            globals()['MUON_MASS'] = 105658375.5
+            return 105658375.5
+        elif units == 'keV':
+            globals()['MUON_MASS'] = 105658375.5 * 1e-3
+            return 105658375.5 * 1e-3
+        elif units == 'MeV' or units == None:
+            globals()['MUON_MASS'] = 105658375.5 * 1e-6
+            return 105658375.5 * 1e-6
+        elif units == 'GeV':
+            globals()['MUON_MASS'] = 105658375.5 * 1e-9
+            return 105658375.5 * 1e-9
+        else:
+            raise ValueError("Invalid units.")
+        
+    elif quantity == 'charge' or quantity == 'elementary charge':
+        if units == None:
+            return CHARGE
+        else:
+            raise Exception(
+                "Units cannot be specified for the elementary charge."
+                )
+        
+    elif quantity == 'fine structure' or \
+        quantity == 'fine structure constant' or quantity == 'alpha':
+        if units == None:
+            return ALPHA
+        else:
+            raise Exception(
+                "Units cannot be specified for the fine structure constant."
+                )
+        
+    elif quantity == 'vacuum speed of light' or quantity == 'c':
+        if units == None:
+            return 1
+        else:
+            raise Exception(
+                "Units cannot be specified for the vacuum speed of light."
+                )
+
 
 def slashed(vmu):
     """
@@ -1388,6 +1231,109 @@ def dirac_current(psi_1, psi_2):
                      np.dot(psi_1, np.dot(GAMMA[3], psi_2))])
 
 
+def handedness_config(n, fixed=None, fixedval=None):
+    """
+    Return an array that contains all possible handedness combinations.  User
+    may specify fixed helicities.
+
+    Parameters
+    ----------
+    n : int
+        Number of helicities.  Must be positive.
+    fixed : array_like or int, optional
+        1D array that contains the indices of fixed helicities.  By default,
+        no helicities are fixed.  The length of `fixed` must be less than `n`.
+    fixedval : array_like or int, optional
+        1D array that contains the fixed helicities.  It is a 1-to-1 mapping
+        to `fixed`.  If `fixed` is specified, then `fixedval` must also be 
+        specified.  The length of `fixedval` must be equal to the length of 
+        `fixed`.
+
+    Returns
+    -------
+    helicities : ndarray
+        2D array that contains all combinations of helicities.
+
+    """
+    
+    # Errors for n
+    if type(n) != int:
+        raise TypeError("`n` must be of type int.")
+    if n <= 0:
+        raise Exception("`n` must be larger than zero.")
+        
+    # If fixed and fixedval are not None
+    if fixed != None:
+        
+        # Check if fixedval is defined
+        if fixedval == None:
+            raise Exception("If `fixed` is specified " \
+                            + "then `fixedval` also needs to be specified.")
+        
+        # Make sure fixed and fixedval are of equal length
+        if len(fixed) != len(fixedval):
+            raise Exception("`fixed` and `fixedval` should " \
+                            + "be of equal length.")
+
+        # Errors for fixed
+        for i in range(len(fixed)):
+            if type(fixed[i]) != int:
+                raise TypeError("Elements of `fixed` should be of type `int`.")
+            if fixed[i] < 0 or fixed[i] > n - 1:
+                raise Exception("Elements of `fixed` should be in the " \
+                                + "interval [0, n-1].")
+                
+        # Errors for fixedval
+        for i in range(len(fixedval)):
+            if type(fixedval[i]) != int:
+                raise TypeError("Elements of `fixedval` should " \
+                                + "be of type int.")
+            if fixedval[i] != 1 and fixedval[i] != -1:
+                raise Exception("Elements of fixedval should be " \
+                                + "either +1, or -1.")
+        
+    # Generate all possibilities and empty handedness configuration list
+    lst = list(itertools.product([1, -1], repeat=n))
+    h = np.zeros((2**n, n))
+    
+    if fixed == None:
+        
+        return lst
+    
+    elif type(fixed) == int and type(fixedval) == int:
+        
+        # Filling the handedness configuration list
+        for i in range(len(h)):
+            for j in range(len(h[i])):
+                h[i][j] = lst[i][j]
+        
+        # Fixing the selected helicities
+        for i in range(len(h)):
+            h[i][fixed] = fixedval
+        
+        # Removing duplicates
+        helicities = np.unique(h, axis=0)
+        
+        return np.array(helicities)
+    
+    else:
+        
+        # Filling the handedness configuration list
+        for i in range(len(h)):
+            for j in range(len(h[i])):
+                h[i][j] = lst[i][j]
+        
+        # Filling in the fixed values
+        for i in range(len(h)):
+            for j in range(len(fixedval)):
+                h[i][fixed[j]] = fixedval[j]
+        
+        # Removing duplicates
+        helicities = np.unique(h, axis = 0)
+        
+        return helicities.astype(int)
+
+
 def empty_lists(n):
     """
     Return a list with empty list.
@@ -1411,7 +1357,7 @@ def empty_lists(n):
     return lists
 
 
-def progress(idx, arr):
+def progress(idx, length):
     """
     Show the percentage of the for-loop that is completed.
 
@@ -1419,12 +1365,12 @@ def progress(idx, arr):
     ----------
     idx : int
         The current value of the index that is being looped over.
-    array : ndarray
-        The array over which the for-loop runs.
+    length : int
+        The length of the array over which the for-loop runs.
     
     """
     
-    progress = np.round(str(100 * (idx + 1) / len(arr)), 3) + '%'
+    progress = np.round(str(100 * (idx + 1) / length), 3) + '%'
     print(progress, end="\r")
     time.sleep(1)  
 

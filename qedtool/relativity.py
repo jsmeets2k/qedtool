@@ -1,7 +1,9 @@
 import numpy as np
 from copy import deepcopy
+import transforms3d
 
 from . import qed
+from .qinfo import QuantumState
 
 
 
@@ -11,6 +13,17 @@ from . import qed
 class ThreeVector:
     """
     Class for 3-vectors, i.e. the spatial parts of 4-vectors.
+
+    Parameters
+    ----------
+    c1, c2, c3 : float
+        The first, second and third components. Their meaning depends on the
+        `coorindates` keyword.
+    coordinates : str
+        Specifies the meanings of `c1`, `c2` and `c3`. If `coordinates` is
+        "Cartesian", then (c1, c2, c3) = (x, y, z). If it is "spherical", then
+        (c1, c2, c3) = (r, theta, phi). If `coordinates` is "cylindrical",
+        then (c1, c2, c3) = (rho, theta, z).
 
     Attributes
     ----------
@@ -153,14 +166,9 @@ class ThreeVector:
     
     def __truediv__(self, other):
 
-        # Multiplication with float or int
-        if not (isinstance(other, float) \
-                or isinstance(other, int) \
-                or isinstance(other, np.int32) \
-                or isinstance(other, np.float64)):
-            return NotImplemented
-        if not isinstance(self, ThreeVector):
-            return NotImplemented
+        # Division by 3-vector impossible
+        if isinstance(other, ThreeVector):
+            raise Exception("Cannot divide by a 3-vector.")
         
         # New 3-vector as array
         scvec = self.vector / other
@@ -175,6 +183,15 @@ class ThreeVector:
         scaled_vec.vector = scvec
 
         return scaled_vec
+
+    def __neg__(self): 
+
+        # Create an instance
+        nvec = ThreeVector(self.sphericals[0],
+                           np.pi - self.sphericals[1], 
+                           self.sphericals[2] + np.pi)
+
+        return nvec
 
     def dot(mat, vec):
         """
@@ -258,6 +275,17 @@ class FourVector:
     """
     Class for 4-vectors, i.e. rank-1 Lorentz tensors.
 
+    Parameters
+    ----------
+    c0, c1, c2, c3 : float
+        The zeroth, first, second and third components. Their meaning depends 
+        on the `coorindates` keyword. `c0` always signifies the time-component.
+    coordinates : str
+        Specifies the meanings of `c1`, `c2` and `c3`. If `coordinates` is
+        "Cartesian", then (c1, c2, c3) = (x, y, z). If it is "spherical", then
+        (c1, c2, c3) = (r, theta, phi). If `coordinates` is "cylindrical",
+        then (c1, c2, c3) = (rho, theta, z).
+    
     Attributes
     ----------
     vector : ndarray of shape (4,)
@@ -420,21 +448,14 @@ class FourVector:
     
     def __truediv__(self, other):
 
-        # Multiplication with float or int
-        if not (isinstance(other, float) \
-                or isinstance(other, int) \
-                or isinstance(other, complex) \
-                or isinstance(other, np.int32) \
-                or isinstance(other, np.float64) \
-                or isinstance(other, np.complex128)):
-            return NotImplemented
-        if not isinstance(self, FourVector):
-            return NotImplemented
+        # Division by 4-vector impossible
+        if isinstance(other, FourVector):
+            raise Exception("Cannot divide by a 4-vector.")
         
         # New 4-vector as array
         svmu = self.vector / other
 
-        # Spherical components of `svmu`
+        # Cartesian components of `svmu`
         t, x, y, z = cartesian_components(svmu)
 
         # Make an instance
@@ -444,6 +465,16 @@ class FourVector:
         scaled_vmu.vector = svmu
 
         return scaled_vmu
+
+    def __neg__(self):
+
+        # Create an instance
+        nmu = FourVector(self.sphericals[0],
+                         self.sphericals[1], 
+                         np.pi - self.sphericals[2], 
+                         self.sphericals[3] + np.pi)
+
+        return nmu
 
     def dot(mat, vmu):
         """
@@ -474,18 +505,9 @@ class FourVector:
         if matrix.shape != (4, 4):
             raise Exception("`matrix` must be an ndarray of shape (4, 4).")
 
-        # Make an instance
-        mvmu = FourVector(1, 1, 0, 0)
-
         # `mat_vec` as an ndarray
         mv = np.dot(matrix, vmu.vector)
-        mvmu.vector = four_vector(mv[0], mv[1], mv[2], mv[3], 
-                                     coordinates='Cartesian')
-        
-        # Overwrite components
-        mvmu.sphericals = spherical_components(mvmu.vector)
-        mvmu.cartesians = cartesian_components(mvmu.vector)
-        mvmu.cylindricals = cylindrical_components(mvmu.vector)
+        mvmu = FourVector(mv[0], mv[1], mv[2], mv[3], 'Cartesian')
 
         return mvmu
 
@@ -539,10 +561,10 @@ class FourVector:
 
         Parameters
         ----------
-        psi_1 : DiracSpinor
-            The adjointed Dirac spinor.
-        psi_2 : DiracSpinor
-            The second Dirac spinor.
+        psi_1 : DiracSpinor or RealParticle
+            The adjointed Dirac spinor or exiting(entering) (anti)fermion.
+        psi_2 : DiracSpinor or RealParticle
+            The second Dirac spinor or (exiting)entering (anti)fermion.
 
         Returns
         -------
@@ -561,20 +583,28 @@ class FourVector:
             raise Exception("`psi_2` must be of type `DiracSpinor` "\
                             + "or `RealParticle`.")
         
-        # Check whether `psi_1` is adjointed
-        if psi_1.adjoint == False:
-            raise Exception("`psi_1` must be adjointed.")
-        elif psi_2.adjoint == True:
-            raise Exception("`psi_2` should not be adjointed.")
-        
         if isinstance(psi_1, qed.DiracSpinor) \
         and isinstance(psi_2, qed.DiracSpinor):
+            
+            # Check whether `psi_1` is adjointed
+            if psi_1.adjoint == False:
+                raise Exception("`psi_1` must be adjointed.")
+            elif psi_2.adjoint == True:
+                raise Exception("`psi_2` should not be adjointed.")
         
             # Construct the Dirac current
             current = qed.dirac_current(psi_1.bispinor, psi_2.bispinor)
 
         elif isinstance(psi_1, qed.RealParticle) \
         and isinstance(psi_2, qed.RealParticle):
+            
+            # Check whether `psi_1` is adjointed
+            if psi_1.polarization.adjoint == False:
+                raise Exception("`psi_1` must be an exiting(entering) "\
+                                + "(anti)fermion.")
+            elif psi_2.polarization.adjoint == True:
+                raise Exception("`psi_2` must be an (exiting)entering "\
+                                + "(anti)fermion.")
             
             # Construct the Dirac current
             current = qed.dirac_current(psi_1.polarization.bispinor, 
@@ -835,9 +865,9 @@ def boost_matrix(beta, representation):
     if representation == '4-vector' or representation == 'four-vector':
 
         # Boost vector components
-        beta_x = beta[0]
-        beta_y = beta[1]
-        beta_z = beta[2]
+        beta_x = -beta[0]
+        beta_y = -beta[1]
+        beta_z = -beta[2]
         b = np.sqrt(beta_x**2 + beta_y**2 + beta_z**2)
         gamma = 1/np.sqrt(1-b**2)
 
@@ -891,14 +921,16 @@ def boost(obj, beta):
     
     Parameters
     ----------
-    obj : FourVector, DiracSpinor, RealParticle or VirtualParticle
+    obj : QuantumState, FourVector, DiracSpinor, RealParticle or 
+          VirtualParticle
         Object on which the boost is performed.
     beta : ThreeVector
         Boost vector of the boost.  It specifies the velocity of the boost.
         
     Returns
     -------
-    obj2 : FourVector, DiracSpinor, RealParticle or VirtualParticle
+    obj2 : QuantumState, FourVector, DiracSpinor, RealParticle or 
+           VirtualParticle
         Boosted object.
     
     """
@@ -957,9 +989,235 @@ def boost(obj, beta):
             raise Exception("The `adjoint` attribute of a `DiracSpinor` must be " \
                             + "`True` or `False`.")
 
+    def quantum_boost_massive(state, beta):
+
+        # `state` should be a `QuantumState`
+        if not isinstance(state, QuantumState):
+            raise TypeError("`state` must be of type `QuantumState`.")
+            
+        # `state` should be a single-particle state
+        if len(state.ket) != 2:
+            raise Exception("`state` must be a single-particle state.")
+
+        # Also include the possibility for `beta` to be a `ThreeVector`
+        if isinstance(beta, ThreeVector):
+            pass
+        elif isinstance(beta, np.ndarray):
+            if len(beta) == 3:
+                pass
+        else:
+            raise TypeError("`beta` must be of type `ThreeVector` or an " \
+                            + "ndarray of shape (3,).")
+            
+        # Pauli spinor components
+        c_left = state.ket[0]
+        c_right = state.ket[1]
+        
+        # Boosted 4-momentum
+        pmu_b_vector = vector_boost(state.four_momentum, beta)
+        pmu_b = FourVector(1,1,0,0)
+        pmu_b.vector = pmu_b_vector
+        pmu_b.sphericals = spherical_components(pmu_b_vector)
+        pmu_b.cylindricals = cylindrical_components(pmu_b_vector)
+        pmu_b.cartesians = cartesian_components(pmu_b_vector)
+        
+        # Boost vector from rest frame to `pmu` and L(p)
+        beta_l = ThreeVector.beta(state.four_momentum)
+        l_pmu = boost_matrix(beta_l, '4-vector')
+        
+        # Boost matrix that will be applied to the quantum state
+        lorentz = boost_matrix(beta, '4-vector')
+        
+        # Inverse of L(pmu_b)
+        l_pmu_b_inv = np.linalg.inv(boost_matrix(ThreeVector.beta(pmu_b), 
+                                                 '4-vector'))
+        
+        # Wigner rotation
+        wigner_4d = l_pmu_b_inv.dot(lorentz).dot(l_pmu)
+        wigner_3d = np.array([
+            [wigner_4d[1][1], wigner_4d[1][2],wigner_4d[1][3]],
+            [wigner_4d[2][1], wigner_4d[2][2],wigner_4d[2][3]],
+            [wigner_4d[3][1], wigner_4d[3][2],wigner_4d[3][3]]]
+            )
+        
+        # Find Euler angles (zyz convention)
+        euler_angles = transforms3d.euler.mat2euler(wigner_3d, 'szyz')
+        a = euler_angles[0]
+        b = euler_angles[1]
+        c = euler_angles[2]
+        
+        # Construct the Wigner-D matrix
+        wigner_d = np.array([[np.exp(-1j*(a + c)/2) * np.cos(b/2), 
+                              -np.exp(-1j*(a - c)/2) * np.sin(b/2)],
+                            [np.exp(1j*(a - c)/2) * np.sin(b/2), 
+                             np.exp(1j*(a + c)/2) * np.cos(b/2)]])
+        
+        # Elements of the Wigner-D matrix
+        d_uu = wigner_d[0][0]
+        d_ud = wigner_d[0][1]
+        d_du = wigner_d[1][0]
+        d_dd = wigner_d[1][1]
+        
+        # Helicity eigenstates with boosted `pmu`
+        left = QuantumState.single(pmu_b, "L")
+        right = QuantumState.single(pmu_b, "R")
+        
+        # Spherical angles of `pmu` and `pmu_b`
+        theta_p = state.four_momentum.sphericals[2]
+        phi_p = state.four_momentum.sphericals[3]
+        theta_lp = pmu_b.sphericals[2]
+        phi_lp = pmu_b.sphericals[3]
+        
+        # Boost on spin-z eigenstates
+        u_b = ((d_du * np.exp(-1j*phi_lp/2) * np.cos(theta_lp/2) \
+                - d_uu * np.exp(1j*phi_lp/2) * np.sin(theta_lp/2)) * left \
+            + (d_uu * np.exp(1j*phi_lp/2) * np.cos(theta_lp/2) \
+                + d_du * np.exp(-1j*phi_lp/2) * np.sin(theta_lp/2)) * right)
+        d_b = ((d_dd * np.exp(-1j*phi_lp/2) * np.cos(theta_lp/2) \
+                - d_ud * np.exp(1j*phi_lp/2) * np.sin(theta_lp/2)) * left \
+            + (d_ud * np.exp(1j*phi_lp/2) * np.cos(theta_lp/2) \
+                + d_dd * np.exp(-1j*phi_lp/2) * np.sin(theta_lp/2)) * right)
+        
+        # Boost on the left- and right-handed helicity eigenstates
+        left_b = np.exp(1j*phi_p/2) * np.cos(theta_p/2) * d_b \
+                 - np.exp(-1j*phi_p/2) * np.sin(theta_p/2) * u_b
+        right_b = np.exp(-1j*phi_p/2) * np.cos(theta_p/2) * u_b \
+                 + np.exp(1j*phi_p/2) * np.sin(theta_p/2) * d_b
+        
+        # Create the boosted state
+        state_b = c_left * left_b + c_right * right_b
+        state_b.bra = np.conj(state_b.ket)
+
+        # Overwrite `state_b.four_momentum` if `state` is a momentum eigenstate
+        if isinstance(state.four_momentum, FourVector):
+            state_b.four_momentum = pmu_b
+        
+        return state_b
+    
+    def quantum_boost_massless(state, beta):
+
+        # `state` should be a `QuantumState`
+        if not isinstance(state, QuantumState):
+            raise TypeError("`state` must be of type `QuantumState`.")
+            
+        # `state` should be a single-particle state
+        if len(state.ket) != 2:
+            raise Exception("`state` must be a single-particle state.")
+
+        # Also include the possibility for `beta` to be a `ThreeVector`
+        if isinstance(beta, ThreeVector):
+            pass
+        elif isinstance(beta, np.ndarray):
+            if len(beta) == 3:
+                pass
+        else:
+            raise TypeError("`beta` must be of type `ThreeVector` or an " \
+                            + "ndarray of shape (3,).")
+            
+        # Pauli spinor components
+        c_left = state.ket[0]
+        c_right = state.ket[1]
+        
+        # Lorentz transform matrix
+        lorentz = boost_matrix(beta, "4-vector")
+        
+        # Boosted 4-momentum
+        pmu_b_vector = vector_boost(state.four_momentum, beta)
+        pmu_b = FourVector(1,1,0,0)
+        pmu_b.vector = pmu_b_vector
+        pmu_b.sphericals = spherical_components(pmu_b_vector)
+        pmu_b.cylindricals = cylindrical_components(pmu_b_vector)
+        pmu_b.cartesians = cartesian_components(pmu_b_vector)
+        
+        # Determine the boost magnitude from k = (1, 0, 0, 1)
+        x_p = state.four_momentum.vector[0]
+        x_lp = pmu_b.vector[0]
+        b_p = (x_p**2 - 1) / (x_p**2 + 1)
+        b_lp = (x_lp**2 - 1) / (x_lp**2 + 1)
+        
+        # z-boosts
+        beta_z_p = ThreeVector(b_p, 0, 0)
+        beta_z_lp = ThreeVector(b_lp, 0, 0)
+        bz_p = boost_matrix(beta_z_p, "4-vector")
+        bz_lp = boost_matrix(beta_z_lp, "4-vector")
+        
+        # Spherical angles
+        theta_p = state.four_momentum.sphericals[2]
+        phi_p = state.four_momentum.sphericals[3]
+        theta_lp = pmu_b.sphericals[2]
+        phi_lp = pmu_b.sphericals[3]
+        
+        # Rotations from k to p
+        if theta_p == 0.:
+            r_theta_p = np.eye(4)
+        else:
+            theta_vec_p = ThreeVector(0, theta_p, 0, "Cartesian")
+            r_theta_p = rotation_matrix(theta_vec_p, "4-vector")
+        if phi_p == 0.:
+            r_phi_p = np.eye(4)
+        else:
+            phi_vec_p = ThreeVector(0, 0, phi_p, "Cartesian")
+            r_phi_p = rotation_matrix(phi_vec_p, "4-vector")
+        r_p = r_phi_p.dot(r_theta_p)
+        
+        # Rotations from k to Λp
+        if theta_lp == 0.:
+            r_theta_lp = np.eye(4)
+        else:
+            theta_vec_lp = ThreeVector(0, theta_lp, 0, "Cartesian")
+            r_theta_lp = rotation_matrix(theta_vec_lp, "4-vector")
+        if phi_p == 0.:
+            r_phi_lp = np.eye(4)
+        else:
+            phi_vec_lp = ThreeVector(0, 0, phi_lp, "Cartesian")
+            r_phi_lp = rotation_matrix(phi_vec_lp, "4-vector")
+        r_lp = r_phi_lp.dot(r_theta_lp)
+        
+        # L(p) and L(Λp)
+        l_p = r_p.dot(bz_p)
+        l_lp = r_lp.dot(bz_lp)
+        
+        # Calculate the inverse of L(Λp)
+        l_lp_inv = np.linalg.inv(l_lp)
+        
+        # Calculate the Wigner rotation
+        wigner_4d = l_lp_inv.dot(lorentz).dot(l_p)
+        
+        # Obtain the phase from W_xx = cos(Θ)
+        if wigner_4d[1][1] > 1 and np.round(wigner_4d[1][1], 6) == 1.:
+            phase = 0
+        elif wigner_4d[1][1] < -1 and np.round(wigner_4d[1][1], 6) == -1.:
+            phase = np.pi
+        else:
+            phase = np.arccos(wigner_4d[1][1])
+        
+        # Boosted momentum-helicity eigenstates
+        left_b = np.exp(-1j*phase) * QuantumState.single(pmu_b, "L")
+        right_b = np.exp(1j*phase) * QuantumState.single(pmu_b, "R")
+        
+        # Create the boosted state
+        state_b = c_left * left_b + c_right * right_b
+        state_b.bra = np.conj(state_b.ket)
+
+        # Overwrite `state_b.four_momentum` if `state` is a momentum eigenstate
+        if isinstance(state.four_momentum, FourVector):
+            state_b.four_momentum = pmu_b
+        
+        return state_b
+
     # Check if `beta` is a three-vector
     if not isinstance(beta, ThreeVector):
         raise TypeError("`beta` must be of type `ThreeVector`.")
+    
+    # If the object is a quantum state
+    if isinstance(obj, QuantumState):
+        if np.round(obj.four_momentum * obj.four_momentum, 6) == 0.:
+            state_b = quantum_boost_massless(obj, beta)
+        elif np.round(obj.four_momentum * obj.four_momentum, 6) < 0:
+            raise ValueError("Unphysical result: negative mass.")
+        else:
+            state_b = quantum_boost_massive(obj, beta)
+        return state_b
 
     # If the object is a four-vector
     if isinstance(obj, FourVector):
@@ -980,8 +1238,8 @@ def boost(obj, beta):
         obj2 = deepcopy(obj)
 
         # Boost the momentum
-        pmu_b = vector_boost(obj.pmu, beta)
-        obj2.pmu = FourVector(pmu_b[0], pmu_b[1], 
+        pmu_b = vector_boost(obj.four_momentum, beta)
+        obj2.four_momentum = FourVector(pmu_b[0], pmu_b[1], 
                               pmu_b[2], pmu_b[3], 'Cartesian')
 
         # If `obj2` is a fermion, boost the fermion representation
@@ -997,9 +1255,9 @@ def boost(obj, beta):
         elif obj2.species == 'photon':
 
             # Boosted polarization
-            emu_b = vector_boost(obj.polarization)
-            obj2.polarization.vector = np.array([emu_b[0], emu_b[1], \
-                                                 emu_b[2], emu_b[3]])
+            emu_b = vector_boost(obj.polarization, beta)
+            obj2.polarization = FourVector(emu_b[0], emu_b[1], \
+                                           emu_b[2], emu_b[3], "Cartesian")
 
         return obj2
     
@@ -1010,18 +1268,19 @@ def boost(obj, beta):
         obj2 = deepcopy(obj)
 
         # Boost the momentum
-        obj2.pmu = vector_boost(obj.pmu, beta)
+        pmu_b = vector_boost(obj.four_momentum, beta)
+        obj2.four_momentum = FourVector(pmu_b[0], pmu_b[1], pmu_b[2], pmu_b[3],
+                              "Cartesian")
 
         # If `obj2` is a fermion, boost in the double fermion representation
         if obj2.species == 'electron' or obj2.species == 'positron' or \
-           obj2.species == 'muon' or obj2.species == 'antimuon' or \
-           obj2.species == 'tau' or obj2.species == 'antitau':
+           obj2.species == 'muon' or obj2.species == 'antimuon':
             
             # Convert to ndarray
             beta = beta.vector
 
-            # Unit vetcor
-            b = np.sqrt(lorentzian_product(beta, beta))
+            # Unit vector
+            b = np.sqrt(euclidean_product(beta, beta))
             n = beta / b
             nx = n[0]
             ny = n[1]
@@ -1092,7 +1351,7 @@ def rotation_matrix(angle_vec, representation):
     if representation == '3-vector' or representation == 'three-vector':
 
         # Matrix
-        rotation_matrix = np.array([
+        rot_mat = np.array([
 
             [nx**2 * (1 - np.cos(theta)) + np.cos(theta), 
              nx * ny * (1 - np.cos(theta)) - nz * np.sin(theta), 
@@ -1111,9 +1370,9 @@ def rotation_matrix(angle_vec, representation):
     elif representation == '4-vector' or representation == 'four-vector':
 
         # Matrix
-        rotation_matrix = np.array([
+        rot_mat = np.array([
 
-            [0, 0, 0, 0],
+            [1, 0, 0, 0],
 
             [0, 
              nx**2 * (1 - np.cos(theta)) + np.cos(theta), 
@@ -1136,10 +1395,14 @@ def rotation_matrix(angle_vec, representation):
         
         # Boost matrix
         ns = 2 * (nx * qed.S23 + ny * qed.S13 + nz * qed.S12)
-        rotation_matrix = qed.I4 * np.cos(theta / 2) \
+        rot_mat = qed.I4 * np.cos(theta / 2) \
                           - 1j * ns * np.sin(theta / 2)
+        
+    else:
+        raise Exception("`representation` must be 'Dirac spinor'" \
+                        + " or '4-vector'.")
 
-    return rotation_matrix
+    return rot_mat
 
 
 def rotation(obj, angle_vec):
@@ -1148,7 +1411,8 @@ def rotation(obj, angle_vec):
     
     Parameters
     ----------
-    obj : ThreeVector, FourVector, DiracSpinor, RealParticle or VirtualParticle
+    obj : QuantumState, ThreeVector, FourVector, DiracSpinor, RealParticle or 
+          VirtualParticle
         Object on which the rotation is performed.
     angle_vec : ndarray of shape (3,) or ThreeVector
         Angle vector of the rotation.  Its magnitude is the angle of rotation
@@ -1156,7 +1420,7 @@ def rotation(obj, angle_vec):
         
     Returns
     -------
-    obj2 : ThreeVector, FourVector, DiracSpinor, RealParticle or 
+    obj2 : QuantumState, ThreeVector, FourVector, DiracSpinor, RealParticle or 
            VirtualParticle
         Rotated object.
     
@@ -1218,6 +1482,148 @@ def rotation(obj, angle_vec):
             raise Exception("The `adjoint` attribute of a `DiracSpinor` must be " \
                             + "`True` or `False`.")
 
+    def quantum_rotation_massive(state, angle_vec):
+
+        # `state` should be a `QuantumState`
+        if not isinstance(state, QuantumState):
+            raise TypeError("`state` must be of type `QuantumState`.")
+            
+        # `state` should be a single-particle state
+        if len(state.ket) != 2:
+            raise Exception("`state` must be a single-particle state.")
+
+        # Also include the possibility for `angle_vec` to be a `ThreeVector`
+        if isinstance(angle_vec, ThreeVector):
+            pass
+        elif isinstance(angle_vec, np.ndarray):
+            if len(angle_vec) == 3:
+                pass
+        else:
+            raise TypeError("`angle_vec` must be of type `ThreeVector` or " \
+                            + "an ndarray of shape (3,).")
+            
+        # Pauli spinor components
+        c_left = state.ket[0]
+        c_right = state.ket[1]
+        
+        # Lorentz transform matrix
+        rot_mat_4d = rotation_matrix(angle_vec, "4-vector")
+        
+        # Rotated 4-momentum
+        pmu_r = FourVector.dot(rot_mat_4d, state.four_momentum)
+
+        # 3D rotation matrix
+        w_3d = rotation_matrix(angle_vec, "3-vector")
+        
+        # Find Euler angles (zyz convention)
+        euler_angles = transforms3d.euler.mat2euler(w_3d, 'szyz')
+        a = euler_angles[0]
+        b = euler_angles[1]
+        c = euler_angles[2]
+        
+        # Construct the Wigner-D matrix
+        wigner_d = np.array([[np.exp(-1j*(a + c)/2) * np.cos(b/2), 
+                              -np.exp(-1j*(a - c)/2) * np.sin(b/2)],
+                             [np.exp(1j*(a - c)/2) * np.sin(b/2), 
+                              np.exp(1j*(a + c)/2) * np.cos(b/2)]])
+        
+        # Elements of the Wigner-D matrix
+        d_uu = wigner_d[0][0]
+        d_ud = wigner_d[0][1]
+        d_du = wigner_d[1][0]
+        d_dd = wigner_d[1][1]
+        
+        # Helicity eigenstates with rotated `pmu`
+        left = QuantumState.single(pmu_r, "L")
+        right = QuantumState.single(pmu_r, "R")
+        
+        # Spherical angles of `pmu` and `pmu_r`
+        theta_p = state.four_momentum.sphericals[2]
+        phi_p = state.four_momentum.sphericals[3]
+        theta_lp = pmu_r.sphericals[2]
+        phi_lp = pmu_r.sphericals[3]
+        
+        # Rotation on spin-z eigenstates
+        u_r = ((d_du * np.exp(-1j*phi_lp/2) * np.cos(theta_lp/2) \
+                - d_uu * np.exp(1j*phi_lp/2) * np.sin(theta_lp/2)) * left \
+            + (d_uu * np.exp(1j*phi_lp/2) * np.cos(theta_lp/2) \
+                + d_du * np.exp(-1j*phi_lp/2) * np.sin(theta_lp/2)) * right)
+        d_r = ((d_dd * np.exp(-1j*phi_lp/2) * np.cos(theta_lp/2) \
+                - d_ud * np.exp(1j*phi_lp/2) * np.sin(theta_lp/2)) * left \
+            + (d_ud * np.exp(1j*phi_lp/2) * np.cos(theta_lp/2) \
+                + d_dd * np.exp(-1j*phi_lp/2) * np.sin(theta_lp/2)) * right)
+        
+        # Rotation on the left- and right-handed helicity eigenstates
+        left_r = np.exp(1j*phi_p/2) * np.cos(theta_p/2) * d_r \
+                 - np.exp(-1j*phi_p/2) * np.sin(theta_p/2) * u_r
+        right_r = np.exp(-1j*phi_p/2) * np.cos(theta_p/2) * u_r \
+                 + np.exp(1j*phi_p/2) * np.sin(theta_p/2) * d_r
+        
+        # Create the rotated state
+        state_r = c_left * left_r + c_right * right_r
+        state_r.bra = np.conj(state_r.ket)
+
+        # Overwrite `state_r.four_momentum` if `state` is a momentum eigenstate
+        if isinstance(state.four_momentum, FourVector):
+            state_r.four_momentum = pmu_r
+        
+        return state_r
+
+    def quantum_rotation_massless(state, angle_vec):
+
+        # `state` should be a `QuantumState`
+        if not isinstance(state, QuantumState):
+            raise TypeError("`state` must be of type `QuantumState`.")
+            
+        # `state` should be a single-particle state
+        if len(state.ket) != 2:
+            raise Exception("`state` must be a single-particle state.")
+
+        # Also include the possibility for `angle_vec` to be a `ThreeVector`
+        if isinstance(angle_vec, ThreeVector):
+            pass
+        elif isinstance(angle_vec, np.ndarray):
+            if len(angle_vec) == 3:
+                pass
+        else:
+            raise TypeError("`angle_vec` must be of type `ThreeVector` or an" \
+                            + " ndarray of shape (3,).")
+            
+        # Pauli spinor components
+        c_left = state.ket[0]
+        c_right = state.ket[1]
+        
+        # Lorentz transform matrix
+        rot_mat_4d = rotation_matrix(angle_vec, "4-vector")
+        rot_mat_3d = rotation_matrix(angle_vec, "3-vector")
+        
+        # Rotated 4-momentum
+        pmu_r = FourVector.dot(rot_mat_4d, state.four_momentum)
+
+        # Find Euler angles (zyz convention)
+        euler_angles = transforms3d.euler.mat2euler(rot_mat_3d, 'szyz')
+        a = euler_angles[0]
+        b = euler_angles[1]
+        c = euler_angles[2]
+
+        # Obtain the photon phase from the rotation
+        phase = 0
+        
+        # Rotated momentum-helicity eigenstates
+        left_r = np.exp(-1j*phase) * QuantumState.single(pmu_r, "L")
+        right_r = np.exp(1j*phase) * QuantumState.single(pmu_r, "R")
+        
+        # Create the rotated state
+        state_r = c_left * left_r + c_right * right_r
+        state_r.bra = np.conj(state_r.ket)
+
+        # Overwrite `state_r.four_momentum` if `state` is a momentum eigenstate
+        if isinstance(state.four_momentum, FourVector):
+            state_r.four_momentum = pmu_r
+        
+        return state_r
+
+
     # Check if `angle_vec` is a three-vector
     if not isinstance(angle_vec, ThreeVector):
         raise TypeError("`angle_vec` must be of type `ThreeVector`.")
@@ -1231,6 +1637,16 @@ def rotation(obj, angle_vec):
     if isinstance(obj, FourVector):
         vmu_r = vector_rotation(obj, angle_vec)
         return FourVector(vmu_r[0], vmu_r[1], vmu_r[2], vmu_r[3], 'Cartesian')
+    
+    # If the object is a quantum state
+    if isinstance(obj, QuantumState):
+        if np.round(obj.four_momentum * obj.four_momentum, 6) == 0.:
+            state_r = quantum_rotation_massless(obj, beta)
+        elif np.round(obj.four_momentum * obj.four_momentum, 6) < 0:
+            raise ValueError("Unphysical result: negative mass.")
+        else:
+            state_r = quantum_rotation_massive(obj, beta)
+        return state_r
     
     # If the object is a Dirac spinor
     elif isinstance(obj, qed.DiracSpinor):
@@ -1246,14 +1662,13 @@ def rotation(obj, angle_vec):
         obj2 = deepcopy(obj)
 
         # Rotate the momentum
-        pmu_r = vector_rotation(obj.pmu, angle_vec)
-        obj2.pmu = FourVector(pmu_r[0], pmu_r[1], 
+        pmu_r = vector_rotation(obj.four_momentum, angle_vec)
+        obj2.four_momentum = FourVector(pmu_r[0], pmu_r[1], 
                               pmu_r[2], pmu_r[3], 'Cartesian')
 
         # If `obj2` is a fermion, rotate in the fermion representation
         if obj2.species == 'electron' or obj2.species == 'positron' or \
-           obj2.species == 'muon' or obj2.species == 'antimuon' or \
-           obj2.species == 'tau' or obj2.species == 'antitau':
+           obj2.species == 'muon' or obj2.species == 'antimuon':
             
             # Boosted polarization
             psi_r = spinor_rotation(obj.polarization, angle_vec)
@@ -1277,18 +1692,17 @@ def rotation(obj, angle_vec):
         obj2 = deepcopy(obj)
 
         # Boost the momentum
-        obj2.pmu = vector_rotation(obj.pmu, angle_vec)
+        obj2.four_momentum = vector_rotation(obj.four_momentum, angle_vec)
 
         # If `obj2` is a fermion, boost in the double fermion representation
         if obj2.species == 'electron' or obj2.species == 'positron' or \
-           obj2.species == 'muon' or obj2.species == 'antimuon' or \
-           obj2.species == 'tau' or obj2.species == 'antitau':
+           obj2.species == 'muon' or obj2.species == 'antimuon':
             
             # Convert to ndarray
             beta = beta.vector
 
-            # Unit vetcor
-            b = np.sqrt(lorentzian_product(beta, beta))
+            # Unit vector
+            b = np.sqrt(euclidean_product(beta, beta))
             n = beta / b
             nx = n[0]
             ny = n[1]
