@@ -5,10 +5,11 @@
 `qedtool` is a Python-based object-oriented tool that allows users to calculate quantum information quantities from relativistic perturbative quantum electrodynamics (QED) at tree-level. With `qedtool`, users can calculate
 
 * polarized tree-level QED Feynman amplitudes,
-* scattering probabilities for pure and mixed polarization states,
+* scattering probabilities and quantum informational quantities for pure and mixed polarization states,
 * the full emitted quantum state (with built-in functions for 2-to-2 particle scattering).
 
 From the emitted quantum state, users can compute
+* the differential cross section (2-to-2 scattering)
 * the degree of two-particle entanglement of emitted states,
 * $n$-particle Stokes parameters,
 * single- and two-particle degree of polarization.
