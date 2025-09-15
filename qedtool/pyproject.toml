@@ -1,0 +1,30 @@
+[project]
+name = "qedtool"
+version = "0.1.0"
+authors = [
+  { name="Jesse Smeets", email=" j.smeets.physics@gmail.com " },
+  { name="Preslav Asenov", email=" preslav.asenov.20@ucl.ac.uk " },
+  { name="Alessio Serafini", email=" serale@theory.phys.ucl.ac.uk " },
+]
+description = "A tool for numerical quantum information calculations in tree-level quantum electrodynamics (QED)."
+
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy >= 1.26.4",
+  "transforms3d >= 0.4.2"
+]
+classifiers = [
+    "Programming Language :: Python :: 3.10",
+    "Operating System :: OS Independent",
+]
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+keywords = ["numpy", "particle physics", "quantum information", "scattering"]
+
+[project.urls]
+Homepage = "https://github.com/jsmeets2k/qedtool"
+
+[build-system]
+requires = ["hatchling >= 1.26"]
+build-backend = "hatchling.build"
