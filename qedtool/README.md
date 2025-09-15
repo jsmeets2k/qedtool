@@ -18,7 +18,7 @@ These quantities can be studied from arbitrary reference frames by means of Lore
 
 [![DOI](http://img.shields.io/badge/arXiv%20preprint%20-DOI-lightblue.svg)](https://arxiv.org/)
 
-The `examples/` directory contains Jupyter notebooks with examples as presented in our paper; from defining and performing operations vectors, spinors, and particles, to complete scattering processes. If you find `qedtool` useful in your research, please cite our paper.
+The `notebooks/` directory contains Jupyter notebooks with examples as presented in our paper; from defining and performing operations vectors, spinors, and particles, to complete scattering processes. If you find `qedtool` useful in your research, please cite our paper.
 
 ### Installation
 
@@ -28,5 +28,6 @@ In addition to cloning `qedtool` from this GitHub repository, it can be installe
 ```
 
 ### License
+
 
 `qedtool` is licensed under the MIT license.
