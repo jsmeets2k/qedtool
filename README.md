@@ -16,7 +16,7 @@ From the emitted quantum state, users can compute
 
 These quantities can be studied from arbitrary reference frames by means of Lorentz transformations. The documentation of `qedtool` is contained within our paper: 
 
-[![DOI](http://img.shields.io/badge/arXiv%20preprint%20-2509.12127-lightblue.svg)]([https://arxiv.org/2509.12127](https://arxiv.org/abs/2509.12127))
+[![DOI](http://img.shields.io/badge/arXiv%20preprint%20-2509.12127-lightblue.svg)](https://arxiv.org/abs/2509.12127)
 
 The `notebooks/` directory contains Jupyter notebooks with examples as presented in our paper; from defining and performing operations vectors, spinors, and particles, to complete scattering processes. If you find `qedtool` useful in your research, please cite our paper.
 
