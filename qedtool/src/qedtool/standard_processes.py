@@ -114,15 +114,6 @@ def standard_scattering(in_state, scattering, momentum,
         if np.shape(projection.rho) != (4, 4):
             raise TypeError("Expected 'projection' to be"\
             + f" of shape (4,4), but got {np.shape(projection.rho)}.")
-    
-    # Raise a type error if p_in_1 or p_in_2 is not a list or array:
-    if not isinstance(p_in_1, (list, np.ndarray)):
-            raise TypeError("Expected `p_in_1` to be a list or an"\
-                        + f" ndarray, but got {type(p_in_1).__name__}.")
-    
-    if not isinstance(p_in_2, (list, np.ndarray)):
-            raise TypeError("Expected `p_in_2` to be a list or an"\
-                        + f" ndarray, but got {type(p_in_2).__name__}.")
 
     # Raise a type error if `momentum`, `theta`, and `phi` are not of lists
     # or ndarrays:
@@ -148,16 +139,6 @@ def standard_scattering(in_state, scattering, momentum,
                         + f", but got {type(phi).__name__}.")
     elif phi == None:
         phi = [0]
-    
-    # Raise a type error if p_in_1 or p_in_2 are not of the same shape as
-    # momentum:
-    if len(p_in_1) != len(momentum):
-            raise TypeError("Expected `p_in_1` to be of the same shape as "\
-                            + "`momentum`")
-    
-    if len(p_in_2) != len(momentum):
-            raise TypeError("Expected `p_in_2` to be of the same shape as "\
-                            + "`momentum`")
     
     # Raise error if dp, c, stokes, deg_pol, are not Boolean:
     if not isinstance(dp, bool):
@@ -438,7 +419,7 @@ def standard_scattering(in_state, scattering, momentum,
 
                     # Find the scattered electron-positron state:
                     out_state_var = QuantumState.out_state( \
-                                    in_state[momentum_index], M_matrix)
+                                    in_state, M_matrix)
 
                 elif scattering == 'bhabha':
 
@@ -556,7 +537,7 @@ def standard_scattering(in_state, scattering, momentum,
                     
                     # Find the scattered electron-positron state:
                     out_state_var = QuantumState.out_state( \
-                                    in_state[momentum_index], M_matrix)
+                                    in_state, M_matrix)
                 
                 elif scattering == 'moller':
 
@@ -672,7 +653,7 @@ def standard_scattering(in_state, scattering, momentum,
 
                     # Find the scattered electron-positron state:
                     out_state_var = QuantumState.out_state( \
-                                    in_state[momentum_index], M_matrix)
+                                    in_state, M_matrix)
 
                 elif scattering == 'electron_positron_annihilation':
 
@@ -769,7 +750,7 @@ def standard_scattering(in_state, scattering, momentum,
                     
                     # Find the scattered electron-positron state:
                     out_state_var = QuantumState.out_state( \
-                                    in_state[momentum_index], M_matrix)
+                                    in_state, M_matrix)
 
                 elif scattering == 'electron_muon':
 
@@ -869,7 +850,7 @@ def standard_scattering(in_state, scattering, momentum,
 
                     # Find the scattered electron-positron state:
                     out_state_var = QuantumState.out_state( \
-                                    in_state[momentum_index], M_matrix)
+                                    in_state, M_matrix)
 
                 elif scattering == 'electron_positron_to_muon_antimuon':
                     
@@ -966,7 +947,7 @@ def standard_scattering(in_state, scattering, momentum,
 
                     # Find the scattered electron-positron state:
                     out_state_var = QuantumState.out_state( \
-                                    in_state[momentum_index], M_matrix)
+                                    in_state, M_matrix)
   
                 # Initialise empty lists for output dictionary and .pkl 
                 # file:
@@ -1095,4 +1076,4 @@ def standard_scattering(in_state, scattering, momentum,
             raise TypeError(f"Expected 'filename' to be a string"\
                         + f", but got {type(filename).__name__}.")
     
-    return output_dictionary      
+    return output_dictionary 
